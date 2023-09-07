@@ -1,0 +1,124 @@
+const int pinStep = 5;
+/*целочисленная константа, хранящая номер цифрового контакта Arduino, который подаёт сигнал Direction на драйвер. Наличие импульса - мотор вращается в одну сторону, отсутствие - в другую*/
+const int pinDir = 4;
+
+//временная задержка между шагами мотора в мс
+const int move_delay = 3;
+
+//шагов на полный оборот
+const int steps_rotate_360 = 400;
+const int steps_rotate_fwd = 440;
+
+#define PIN 2				// кнопка подключена сюда (PIN --- КНОПКА --- GND)
+#define BTN_PIN 3				// кнопка подключена сюда (BTN_PIN --- КНОПКА --- GND)
+
+// constants won't change. Used here to set a pin number:
+const int ledPin = LED_BUILTIN;  // the number of the LED pin
+
+// Variables will change:
+int ledState = LOW;  // ledState used to set the LED
+
+// Generally, you should use "unsigned long" for variables that hold time
+// The value will quickly become too large for an int to store
+unsigned long previousMillis = 0;  // will store last time LED was updated
+
+// constants won't change:
+const long interval = 1000;  // interval at which to blink (milliseconds)
+
+#include "GyverButton.h"
+GButton butt1(PIN);
+GButton cardBtn(BTN_PIN);
+
+// GButton butt1(PIN, HIGH_PULL, NORM_OPEN); // можно инициализировать так
+
+int value = 0;
+
+void setup() {
+
+
+  Serial.begin(9600);
+
+/*задаём контактам Step и Direction режим вывода, то есть они выдают напряжение*/
+  pinMode(pinStep, OUTPUT);
+  pinMode(pinDir, OUTPUT);
+//устанавливаем начальный режим
+  digitalWrite(pinStep, HIGH);
+  digitalWrite(pinDir, HIGH);
+
+  cardBtn.setDebounce(80);
+  butt1.setDebounce(80);        // настройка антидребезга (по умолчанию 80 мс)
+  //butt1.setTimeout(300);        // настройка таймаута на удержание (по умолчанию 500 мс)
+  butt1.setClickTimeout(5000);   // настройка таймаута между кликами (по умолчанию 300 мс)
+  cardBtn.setTimeout(300);
+
+  // HIGH_PULL - кнопка подключена к GND, пин подтянут к VCC (PIN --- КНОПКА --- GND)
+  // LOW_PULL  - кнопка подключена к VCC, пин подтянут к GND
+  butt1.setType(HIGH_PULL);
+  cardBtn.setType(HIGH_PULL);
+  // NORM_OPEN - нормально-разомкнутая кнопка
+  // NORM_CLOSE - нормально-замкнутая кнопка
+  butt1.setDirection(NORM_CLOSE);
+  cardBtn.setDirection(NORM_OPEN);
+
+  //debug
+    pinMode(ledPin, OUTPUT);
+
+
+}
+void errorBlink(){
+unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+    // save the last time you blinked the LED
+    previousMillis = currentMillis;
+
+    // if the LED is off turn it on and vice-versa:
+    if (ledState == LOW) {
+      ledState = HIGH;
+    } else {
+      ledState = LOW;
+    }
+
+    // set the LED with the ledState of the variable:
+    digitalWrite(ledPin, ledState);
+  } 
+}
+
+void loop() {
+  butt1.tick();  // обязательная функция отработки. Должна постоянно опрашиваться
+cardBtn.tick();
+
+  if (butt1.isPress()&&(cardBtn.isHold())){
+    Serial.println("Press");         // нажатие на кнопку (+ дебаунс)
+    //устанавливаем направление вращения обратное
+  digitalWrite(pinDir, LOW);
+
+  for(int i = 0; i < steps_rotate_fwd; i++)
+  {
+    digitalWrite(pinStep, HIGH);
+    delay(move_delay);
+    digitalWrite(pinStep, LOW);
+    delay(move_delay);
+  }
+
+  delay(move_delay*10);
+      digitalWrite(pinDir, HIGH);
+
+  for(int i = 0; i < steps_rotate_360; i++)
+  {
+    digitalWrite(pinStep, HIGH);
+    delay(move_delay);
+    digitalWrite(pinStep, LOW);
+    delay(move_delay);
+  }
+
+  delay(move_delay*10);
+  delay(2000);        //hardcode
+
+
+
+  } else
+  errorBlink();
+
+
+}
